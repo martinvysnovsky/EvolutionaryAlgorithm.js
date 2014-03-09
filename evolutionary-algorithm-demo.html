@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta name="author" content="Martin Vyšňovský (martinvysnovsky@gmail.com)">
+	<title>Evolutionary algorithm</title>
+</head>
+<body>
+
+<script src="./ea.js"></script>
+<script>
+	// measure time taken by algorithm
+	var start = new Date().getTime();
+
+	var fitness_function = function(item) {
+		/*var a = 2 * Math.sin((item.m * Math.pow(item.n, 3)) / 3) + Math.tan(item.p);
+		
+		if(a == 0)
+			return -Infinity;
+
+		return (Math.cos(Math.pow(item.x, 2)) - 2.5 * Math.pow(item.y, Math.round(1 / item.z))) / a;*/
+		return 2 * Math.sin(item.x) + 2;
+	};
+
+	// initialize algorithm; argument is array of names of variables used
+	var ea = new EA(['x', 'y', 'z', 'm', 'n', 'p']);
+
+	// initialize population
+	// allowed methods: random
+	var population = ea.initializePopulation('random', 500);
+
+	// compute fitness for all candidates in population
+	population.computeFitness(fitness_function);
+
+	// select parents from population
+	// allowed methods: random, best, roulette (rouletteMethod: with_replacement, without_replacement, remainder_with_replacement, remainder_without_replacement, univerzal)
+	var parents = population.getParents('roulette', 20, {rouletteMethod: 'univerzal', shuffleOrder: true});
+
+	// print out parents
+	for(var i=0, len=parents.length; i<len; i++)
+	{
+		document.write(i+1 + ": " + parents[i].toString() + "<br>");
+	}
+
+	var end = new Date().getTime();
+	var time = end - start;
+	document.write('Execution time: ' + time + 'ms');
+</script>
+</body>
+</html>
