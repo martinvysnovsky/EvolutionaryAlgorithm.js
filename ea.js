@@ -388,8 +388,12 @@ EAPopulation.prototype = (function()
 
 			switch(method)
 			{
+				case 'extremal_mutation':
+					var f = function() { return (Math.random() > 0.5) ? interval[1] : interval[0]; };
 				case 'uniform_mutation':
 				default:
+					var f = f || function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+
 					var n = (options && options.number_of_mutated_values) || 1;
 					var variables = this.algorithm.variables;
 					var variables_length = variables.length;
@@ -401,7 +405,7 @@ EAPopulation.prototype = (function()
 						{
 							var pos = Math.floor(Math.random() * variables_length);
 							
-							parents[i][variables[pos]] = (Math.random() * (interval[1] - interval[0])) + interval[0];
+							parents[i][variables[pos]] = f();
 						}
 					}
 			}

@@ -33,8 +33,8 @@
 	var parents = population.getParents('roulette', 20, {rouletteMethod: 'univerzal', shuffleOrder: true});
 	
 	// apply genetic operators to population
-	// allowed methods: uniform_mutation (number_of_mutated_values), ...
-	population.applyGeneticOperators(parents, 'uniform_mutation');
+	// allowed methods: uniform_mutation (number_of_mutated_values), extremal_mutation (number_of_mutated_values)
+	population.applyGeneticOperators(parents, 'extremal_mutation');
 
 	// print out parents
 	for(var i=0, len=parents.length; i<len; i++)
