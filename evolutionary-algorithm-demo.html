@@ -13,17 +13,13 @@
 	var start = new Date().getTime();
 
 	var fitness_function = function(item) {
-		/*var a = 2 * Math.sin((item.m * Math.pow(item.n, 3)) / 3) + Math.tan(item.p);
-		
-		if(a == 0)
-			return -Infinity;
-
-		return (Math.cos(Math.pow(item.x, 2)) - 2.5 * Math.pow(item.y, Math.round(1 / item.z))) / a;*/
 		return 2 * Math.sin(item.x) + 2;
 	};
 
-	// initialize algorithm; argument is array of names of variables used
-	var ea = new EA(['x', 'y', 'z', 'm', 'n', 'p']);
+	// initialize algorithm;
+	// first argument is array of names of variables used
+	// second argument is interval of this values [min, max]
+	var ea = new EA(['x', 'y', 'z', 'm', 'n', 'p'], [-1, 1]);
 
 	// initialize population
 	// allowed methods: random
@@ -35,6 +31,10 @@
 	// select parents from population
 	// allowed methods: random, best, roulette (rouletteMethod: with_replacement, without_replacement, remainder_with_replacement, remainder_without_replacement, univerzal)
 	var parents = population.getParents('roulette', 20, {rouletteMethod: 'univerzal', shuffleOrder: true});
+	
+	// apply genetic operators to population
+	// allowed methods: uniform_mutation (number_of_mutated_values), ...
+	population.applyGeneticOperators(parents, 'uniform_mutation');
 
 	// print out parents
 	for(var i=0, len=parents.length; i<len; i++)

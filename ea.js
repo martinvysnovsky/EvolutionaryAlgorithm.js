@@ -6,17 +6,25 @@
  * Evolutionary algorithm constructor.
  *
  * @param  array  variables  Variables for algorithm.
+ * @param  array  interval   Interval of values that variables cam make.
  */
-function EA(variables)
+function EA(variables, interval)
 {
+	// store variable names
 	this.variables = [];
-
 	if(Object.prototype.toString.call(variables) === '[object Array]')
 	{
 		this.variables = this.variables.concat(variables);
 	}
 	else
 		this.variables.push(variables);
+
+	// check interval
+	if(Object.prototype.toString.call(interval) !== '[object Array]' || interval.length != 2)
+		throw new Error('Interval must be array with min and max value.');
+
+	// store interval
+	this.interval = interval;
 }
 
 EA.prototype = {
@@ -36,7 +44,7 @@ EA.prototype = {
 		method = method || 'random';
 		n = n || 0;
 
-		var population = new EAPopulation();
+		var population = new EAPopulation(this);
 
 		if(n > 0)
 		{
@@ -45,7 +53,8 @@ EA.prototype = {
 			{
 				case 'random':
 				default:
-					generateIndividualFunction = function() { return (Math.random() * 2) - 1; };
+					var interval = this.interval;
+					generateIndividualFunction = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
 			}
 		
 			while(population.count < n)
@@ -101,10 +110,14 @@ EAIndividual.prototype = {
 /**
  * Population of individuals.
  *
- * @param  array  individuals  Array of individuals in population.
+ * @param  array  algorithm  Algorithm that sreates this population.
  */
-function EAPopulation()
+function EAPopulation(algorithm)
 {
+	if(!(algorithm instanceof EA))
+		throw new Error('First argument must be algorithm that creates this population.');
+	
+	this.algorithm = algorithm;
 	this.individuals = new Array();
 }
 
@@ -180,7 +193,7 @@ EAPopulation.prototype = (function()
 				rouletteSize = individuals.reduce(function(a, b)
 				{
 					return {fitness: a.fitness + Math.max(0, b.fitness)};
-				}, {fitness: 0}).fitness;
+				}, {fitness: 0}).fitness;getPa
 				break;
 			case 'remainder_with_replacement':
 			case 'remainder_without_replacement':
@@ -210,7 +223,6 @@ EAPopulation.prototype = (function()
 
 				if(shuffleOrder)
 				{
-
 					// randomly shuffle order of individuals
 					for(var a=0, len=keys.length; a<len; a++)
 					{
@@ -367,6 +379,32 @@ EAPopulation.prototype = (function()
 			}
 
 			return [];
+		},
+
+		applyGeneticOperators: function(parents, method, options)
+		{
+			if(!(parents.length > 0))
+				throw new Error('Argument parents can not by empty.');
+
+			switch(method)
+			{
+				case 'uniform_mutation':
+				default:
+					var n = (options && options.number_of_mutated_values) || 1;
+					var variables = this.algorithm.variables;
+					var variables_length = variables.length;
+					var interval = this.algorithm.interval; 
+
+					for(var i=0, len=parents.length; i<len; i++)
+					{
+						for(var j=0; j<n; j++)
+						{
+							var pos = Math.floor(Math.random() * variables_length);
+							
+							parents[i][variables[pos]] = (Math.random() * (interval[1] - interval[0])) + interval[0];
+						}
+					}
+			}
 		}
 	}
 
