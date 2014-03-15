@@ -84,7 +84,8 @@ function EAIndividual(variables, f)
 	{
 		for(var v=0, len=variables.length; v<len; v++)
 		{
-			this[variables[v]] = f();
+			var variable = variables[v];
+			this[variable] = f(variable, v);
 		}
 	}
 
@@ -132,17 +133,18 @@ EAPopulation.prototype = (function()
 	 */
 	function getRandomParents(n)
 	{
-		var individuals = new Array(n);
-		var individuals_length = this.individuals.length;
+		var parents            = new Array(n);
+		var individuals        = this.individuals;
+		var individuals_length = individuals.length;
 
 		for(var i=0; i<n; i++)
 		{
 			var index = Math.floor(Math.random() * individuals_length);
 
-			individuals[i] = this.individuals[index];
+			parents[i] = individuals[index];
 		}
 
-		return individuals;
+		return parents;
 	}
 
 	/**
@@ -386,6 +388,8 @@ EAPopulation.prototype = (function()
 			if(!(parents.length > 0))
 				throw new Error('Argument parents can not by empty.');
 
+			var parents_length = parents.length;
+
 			switch(method)
 			{
 				case 'extremal_mutation':
@@ -398,17 +402,26 @@ EAPopulation.prototype = (function()
 					var variables = this.algorithm.variables;
 					var variables_length = variables.length;
 					var interval = this.algorithm.interval; 
+					var children = new Array(parents_length);
 
-					for(var i=0, len=parents.length; i<len; i++)
+					for(var i=0; i<parents_length; i++)
 					{
+						var parent = parents[i];
+						
+						var pos = new Array(n);
 						for(var j=0; j<n; j++)
 						{
-							var pos = Math.floor(Math.random() * variables_length);
-							
-							parents[i][variables[pos]] = f();
+							pos[j] = Math.floor(Math.random() * variables_length);
 						}
+						
+						children[i] = new EAIndividual(variables, function(variable, k)
+						{
+							return (pos.indexOf(k) != -1) ? f() : parent[variable];
+						});
 					}
 			}
+
+			return children;
 		}
 	}
 
