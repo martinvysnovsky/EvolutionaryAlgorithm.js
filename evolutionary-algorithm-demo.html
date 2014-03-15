@@ -19,14 +19,11 @@
 	// initialize algorithm;
 	// first argument is array of names of variables used
 	// second argument is interval of this values [min, max]
-	var ea = new EA(['x', 'y', 'z', 'm', 'n', 'p'], [-1, 1]);
+	var ea = new EA(['x', 'y', 'z', 'm', 'n', 'p'], [-1, 1], fitness_function);
 
 	// initialize population
 	// allowed methods: random
 	var population = ea.initializePopulation('random', 500);
-
-	// compute fitness for all candidates in population
-	population.computeFitness(fitness_function);
 
 	// select parents from population
 	// allowed methods: random, best, roulette (rouletteMethod: with_replacement, without_replacement, remainder_with_replacement, remainder_without_replacement, univerzal)

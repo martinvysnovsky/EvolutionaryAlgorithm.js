@@ -5,10 +5,11 @@
 /**
  * Evolutionary algorithm constructor.
  *
- * @param  array  variables  Variables for algorithm.
- * @param  array  interval   Interval of values that variables cam make.
+ * @param  array     variables         Variables for algorithm.
+ * @param  array     interval          Interval of values that variables cam make.
+ * @param  function  fitness_function  Fitness function.
  */
-function EA(variables, interval)
+function EA(variables, interval, fitness_function)
 {
 	// store variable names
 	this.variables = [];
@@ -25,6 +26,13 @@ function EA(variables, interval)
 
 	// store interval
 	this.interval = interval;
+
+	// check fitness function
+	if(Object.prototype.toString.call(fitness_function) !== '[object Function]')
+		throw new Error('Fitness function must be valid function.');
+
+	// store fitness function
+	this.fitness_function = fitness_function;
 }
 
 EA.prototype = {
@@ -56,10 +64,12 @@ EA.prototype = {
 					var interval = this.interval;
 					generateIndividualFunction = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
 			}
+
+			var fitness_function = this.fitness_function;
 		
 			while(population.count < n)
 			{
-				var individual = new EAIndividual(this.variables, generateIndividualFunction);
+				var individual = new EAIndividual(this.variables, generateIndividualFunction, fitness_function);
 
 				//if(population.hasIndividual(individual))
 				//	continue;
@@ -75,21 +85,22 @@ EA.prototype = {
 /**
  * Individiual for evolutionary algorithm.
  *
- * @param  array  variables  Array of variable names.
- * @param  array  f  		 Function that generates individual value.
+ * @param  array     variables  		Array of variable names.
+ * @param  function  generate_function  Function that generates individual value.
+ * @param  function  fitness_function   Function that computes fitness.
  */
-function EAIndividual(variables, f)
+function EAIndividual(variables, generate_function, fitness_function)
 {
 	if(variables)
 	{
 		for(var v=0, len=variables.length; v<len; v++)
 		{
 			var variable = variables[v];
-			this[variable] = f(variable, v);
+			this[variable] = generate_function(variable, v);
 		}
 	}
 
-	this.fitness = 0;
+	this.fitness = fitness_function(this);
 }
 
 EAIndividual.prototype = {
@@ -335,26 +346,6 @@ EAPopulation.prototype = (function()
 		},
 
 		/**
-		 * Compute fitness for every individual in population.
-		 *
-		 * @param   function  f  Function, that will compute fitness.
-		 *
-		 * @return  void
-		 */
-		computeFitness: function(f)
-		{
-			if(typeof f != 'function')
-				throw new Error('Argument must be valid function!');
-
-			for(var i=0, len=this.individuals.length; i<len; i++)
-			{
-				var individual = this.individuals[i];
-			
-				individual.fitness = f(individual);
-			}
-		},
-
-		/**
 		 * Get n best individuals in population.
 		 *
 		 * @param   string  method   Method to use.
@@ -388,6 +379,7 @@ EAPopulation.prototype = (function()
 			if(!(parents.length > 0))
 				throw new Error('Argument parents can not by empty.');
 
+			var algorithm = this.algorithm;
 			var parents_length = parents.length;
 
 			switch(method)
@@ -399,9 +391,10 @@ EAPopulation.prototype = (function()
 					var f = f || function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
 
 					var n = (options && options.number_of_mutated_values) || 1;
-					var variables = this.algorithm.variables;
+					var variables = algorithm.variables;
 					var variables_length = variables.length;
-					var interval = this.algorithm.interval; 
+					var interval = algorithm.interval; 
+					var fitness_function = algorithm.fitness_function; 
 					var children = new Array(parents_length);
 
 					for(var i=0; i<parents_length; i++)
@@ -417,7 +410,7 @@ EAPopulation.prototype = (function()
 						children[i] = new EAIndividual(variables, function(variable, k)
 						{
 							return (pos.indexOf(k) != -1) ? f() : parent[variable];
-						});
+						}, fitness_function);
 					}
 			}
 
