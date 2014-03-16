@@ -36,7 +36,7 @@
 		var children = population.applyGeneticOperators(parents, 'uniform_mutation');
 
 		// replace curent population with new one
-		// allowed methods: one_generational, comma_strategy (newGenerationSize), separate_competition (generationGap), plus_strategy (newGenerationSize)
+		// allowed methods: generational, comma_strategy (newGenerationSize), separate_competition (generationGap), plus_strategy (newGenerationSize)
 		population.replacement(parents, children, 'comma_strategy', {newGenerationSize: 15});
 	}
 
