@@ -415,6 +415,73 @@ EAPopulation.prototype = (function()
 			}
 
 			return children;
+		},
+
+		/**
+		 * Method to replace individuals in curent population with new ones
+		 *
+		 * @param   array   parents   Selected parents from curent population.
+		 * @param   array   children  Generated children from genetic operators.
+		 * @param   string  method    Method to use.
+		 * @param   object  options   Options for some methods.
+		 *
+		 * @return  void
+		 */
+		replacement: function(parents, children, method, options)
+		{
+			if(!(parents.length > 0))
+				throw new Error('Argument parents can not by empty.');
+
+			if(!(children.length > 0))
+				throw new Error('Argument children can not by empty.');
+
+			var individuals_length = this.individuals.length;
+
+			switch(method)
+			{
+				case 'comma_strategy':
+					var newGenerationSize = (options && options.newGenerationSize) || individuals_length;
+
+					// sort children by fitness
+					children.sort(function(a, b) {
+						return b.fitness - a.fitness;
+					});
+
+					this.individuals = children.slice(0, newGenerationSize);
+					break;
+				case 'separate_competition':
+					var generationGap = (options && options.generationGap) || 0;
+					var num_parents = individuals_length - generationGap;
+
+					// sort parents by fitness
+					parents.sort(function(a, b) {
+						return b.fitness - a.fitness;
+					});
+
+					var parents = parents.slice(0, num_parents);
+
+					// sort children by fitness
+					children.sort(function(a, b) {
+						return b.fitness - a.fitness;
+					});
+
+					this.individuals = parents.concat(children.slice(0, generationGap));
+					break;
+				case 'plus_strategy':
+					var newGenerationSize = (options && options.newGenerationSize) || individuals_length;
+					var plus = parents.concat(children);
+
+					// sort parents and children by fitness
+					plus.sort(function(a, b) {
+						return b.fitness - a.fitness;
+					});
+
+					this.individuals = plus.slice(0, newGenerationSize);
+					break;
+				case 'generational':
+				default:
+					this.individuals = children;
+			}
 		}
 	}
 

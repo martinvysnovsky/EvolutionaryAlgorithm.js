@@ -19,24 +19,33 @@
 	// initialize algorithm;
 	// first argument is array of names of variables used
 	// second argument is interval of this values [min, max]
-	var ea = new EA(['x', 'y', 'z', 'm', 'n', 'p'], [-1, 1], fitness_function);
+	var ea = new EA(['x', 'y', 'z', 'm', 'n', 'p'], [-3, 3], fitness_function);
 
 	// initialize population
 	// allowed methods: random
-	var population = ea.initializePopulation('random', 500);
+	var population = ea.initializePopulation('random', 20);
 
-	// select parents from population
-	// allowed methods: random, best, roulette (rouletteMethod: with_replacement, without_replacement, remainder_with_replacement, remainder_without_replacement, univerzal)
-	var parents = population.getParents('roulette', 20, {rouletteMethod: 'univerzal', shuffleOrder: true});
-	
-	// apply genetic operators to population
-	// allowed methods: uniform_mutation (number_of_mutated_values), extremal_mutation (number_of_mutated_values)
-	var children = population.applyGeneticOperators(parents, 'extremal_mutation');
+	for(var i=0; i<100; i++)
+	{
+		// select parents from population
+		// allowed methods: random, best, roulette (rouletteMethod: with_replacement, without_replacement, remainder_with_replacement, remainder_without_replacement, univerzal)
+		var parents = population.getParents('roulette', 20, {rouletteMethod: 'univerzal', shuffleOrder: true});
+		
+		// apply genetic operators to population
+		// allowed methods: uniform_mutation (number_of_mutated_values), extremal_mutation (number_of_mutated_values)
+		var children = population.applyGeneticOperators(parents, 'uniform_mutation');
+
+		// replace curent population with new one
+		// allowed methods: one_generational, comma_strategy (newGenerationSize), separate_competition (generationGap), plus_strategy (newGenerationSize)
+		population.replacement(parents, children, 'comma_strategy', {newGenerationSize: 15});
+	}
+
+	var result = population.individuals;
 
 	// print out parents
-	for(var i=0, len=parents.length; i<len; i++)
+	for(var i=0, len=result.length; i<len; i++)
 	{
-		document.write(i+1 + ": " + parents[i].toString() + "<br>");
+		document.write(i+1 + ": " + result[i].toString() + "<br>");
 	}
 
 	var end = new Date().getTime();
