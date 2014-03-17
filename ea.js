@@ -7,9 +7,10 @@
  *
  * @param  array     variables         Variables for algorithm.
  * @param  array     interval          Interval of values that variables cam make.
+ * @param  string    number_coding     Typ of numbers that can be used. ('INT', 'REAL')
  * @param  function  fitness_function  Fitness function.
  */
-function EA(variables, interval, fitness_function)
+function EA(variables, interval, number_coding, fitness_function)
 {
 	// store variable names
 	this.variables = [];
@@ -26,6 +27,9 @@ function EA(variables, interval, fitness_function)
 
 	// store interval
 	this.interval = interval;
+
+	// store number coding
+	this.number_coding = number_coding.toUpperCase() || 'INT';
 
 	// check fitness function
 	if(Object.prototype.toString.call(fitness_function) !== '[object Function]')
@@ -62,7 +66,11 @@ EA.prototype = {
 				case 'random':
 				default:
 					var interval = this.interval;
-					generateIndividualFunction = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+
+					if(this.number_coding == 'INT')
+						generateIndividualFunction = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
+					else
+						generateIndividualFunction = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
 			}
 
 			var fitness_function = this.fitness_function;
@@ -385,10 +393,19 @@ EAPopulation.prototype = (function()
 			switch(method)
 			{
 				case 'extremal_mutation':
-					var f = function() { return (Math.random() > 0.5) ? interval[1] : interval[0]; };
+					if(this.algorithm.number_coding == 'INT')
+						var f = function() { return Math.round((Math.random() > 0.5) ? interval[1] : interval[0]); };
+					else
+						var f = function() { return (Math.random() > 0.5) ? interval[1] : interval[0]; };
 				case 'uniform_mutation':
 				default:
-					var f = f || function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+					if(!f)
+					{
+						if(this.algorithm.number_coding == 'INT')
+							var f = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
+						else
+							var f = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+					}
 
 					var n = (options && options.number_of_mutated_values) || 1;
 					var variables = algorithm.variables;
