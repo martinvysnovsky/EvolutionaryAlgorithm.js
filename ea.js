@@ -9,8 +9,9 @@
  * @param  array     interval          Interval of values that variables cam make.
  * @param  string    number_coding     Typ of numbers that can be used. ('INT', 'REAL')
  * @param  function  fitness_function  Fitness function.
+ * @param  object    options           More options.
  */
-function EA(variables, interval, number_coding, fitness_function)
+function EA(variables, interval, number_coding, fitness_function, options)
 {
 	// store variable names
 	this.variables = [];
@@ -37,6 +38,9 @@ function EA(variables, interval, number_coding, fitness_function)
 
 	// store fitness function
 	this.fitness_function = fitness_function;
+
+	// store if individual have varibale length
+	this.variable_individual_length = (options && options.variableIndividualLength) || false;
 }
 
 EA.prototype = {
@@ -74,13 +78,13 @@ EA.prototype = {
 			}
 
 			var fitness_function = this.fitness_function;
+			var variable_individual_length = this.variable_individual_length;
+			var max_individual_length = 100;
 		
 			while(population.count < n)
 			{
-				var individual = new EAIndividual(this.variables, generateIndividualFunction, fitness_function);
-
-				//if(population.hasIndividual(individual))
-				//	continue;
+				var variables = (variable_individual_length) ? Array.apply(null, Array(Math.round(Math.random() * max_individual_length))).map(function (_, i) {return i;}) : this.variables;
+				var individual = new EAIndividual(variables, generateIndividualFunction, fitness_function);
 
 				population.push(individual);
 			}
@@ -99,12 +103,14 @@ EA.prototype = {
  */
 function EAIndividual(variables, generate_function, fitness_function)
 {
+	this.variables = {};
+
 	if(variables)
 	{
 		for(var v=0, len=variables.length; v<len; v++)
 		{
 			var variable = variables[v];
-			this[variable] = generate_function(variable, v);
+			this.variables[variable] = generate_function(variable, v);
 		}
 	}
 
@@ -113,18 +119,38 @@ function EAIndividual(variables, generate_function, fitness_function)
 
 EAIndividual.prototype = {
 	constructor: EAIndividual,
+
 	toString: function()
 	{
+		var variables = this.variables;
+
 		ret = new Array();
 
-		for(p in this)
+		for(p in variables)
 		{
 			if(this.hasOwnProperty(p))
-				ret.push(p + ': ' + this[p]);
+				ret.push(p + ': ' + variables[p]);
 		}
 
+		ret.push('fitness: ' + this.fitness);
+
 		return ret.join(', ');
+	},
+
+	toArray: function()
+	{
+		var variables = this.variables;
+
+		ret = new Array();
+
+		for(p in variables)
+		{
+			ret.push(variables[p]);
+		}
+
+		return ret;
 	}
+
 }
 
 /**
@@ -198,7 +224,7 @@ EAPopulation.prototype = (function()
 		var individuals   = this.individuals;
 		var fitnessValues = individuals.slice(0).map(function(individual)
 		{
-			return individual.fitness;
+			return Math.max(0, individual.fitness);
 		});
 		var parents       = new Array(n);
 		var i             = 0; // parent counter
@@ -214,7 +240,10 @@ EAPopulation.prototype = (function()
 				rouletteSize = individuals.reduce(function(a, b)
 				{
 					return {fitness: a.fitness + Math.max(0, b.fitness)};
-				}, {fitness: 0}).fitness;getPa
+				}, {fitness: 0}).fitness;
+
+				if(rouletteSize == 0)
+					return [];
 				break;
 			case 'remainder_with_replacement':
 			case 'remainder_without_replacement':
@@ -232,6 +261,9 @@ EAPopulation.prototype = (function()
 				{
 					return {fitness: a.fitness + Math.max(0, b.fitness) % 1};
 				}, {fitness: 0}).fitness;
+
+				if(rouletteSize == 0)
+					return parents;
 
 				fitnessValues = fitnessValues.map(function(fitness)
 				{
@@ -259,6 +291,9 @@ EAPopulation.prototype = (function()
 				{
 					return {fitness: a.fitness + Math.max(0, b.fitness)};
 				}, {fitness: 0}).fitness;
+
+				if(rouletteSize == 0)
+					return [];
 
 				var pointerStep = rouletteSize / n;
 
@@ -384,8 +419,8 @@ EAPopulation.prototype = (function()
 
 		applyGeneticOperators: function(parents, method, options)
 		{
-			if(!(parents.length > 0))
-				throw new Error('Argument parents can not by empty.');
+			if(!parents || parents.length == 0)
+				return [];
 
 			var algorithm = this.algorithm;
 			var parents_length = parents.length;
@@ -407,9 +442,7 @@ EAPopulation.prototype = (function()
 							var f = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
 					}
 
-					var n = (options && options.number_of_mutated_values) || 1;
-					var variables = algorithm.variables;
-					var variables_length = variables.length;
+					var n = (options && options.number_of_mutated_values) || 1;	
 					var interval = algorithm.interval; 
 					var fitness_function = algorithm.fitness_function; 
 					var children = new Array(parents_length);
@@ -417,16 +450,20 @@ EAPopulation.prototype = (function()
 					for(var i=0; i<parents_length; i++)
 					{
 						var parent = parents[i];
-						
+
+						var variables = parent.variables;
+						var variable_keys = Object.keys(variables);
+						var variables_length = variable_keys.length;
+
 						var pos = new Array(n);
 						for(var j=0; j<n; j++)
 						{
 							pos[j] = Math.floor(Math.random() * variables_length);
 						}
 						
-						children[i] = new EAIndividual(variables, function(variable, k)
+						children[i] = new EAIndividual(variable_keys, function(variable, k)
 						{
-							return (pos.indexOf(k) != -1) ? f() : parent[variable];
+							return (pos.indexOf(k) != -1) ? f() : variables[variable];
 						}, fitness_function);
 					}
 			}
@@ -446,12 +483,6 @@ EAPopulation.prototype = (function()
 		 */
 		replacement: function(parents, children, method, options)
 		{
-			if(!(parents.length > 0))
-				throw new Error('Argument parents can not by empty.');
-
-			if(!(children.length > 0))
-				throw new Error('Argument children can not by empty.');
-
 			var individuals_length = this.individuals.length;
 
 			switch(method)
