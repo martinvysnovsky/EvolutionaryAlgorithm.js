@@ -8,10 +8,10 @@
  * @param  array     variables         Variables for algorithm.
  * @param  array     interval          Interval of values that variables cam make.
  * @param  string    number_coding     Typ of numbers that can be used. ('INT', 'REAL')
- * @param  function  fitness_function  Fitness function.
+ * @param  function  fitnessFunction  Fitness function.
  * @param  object    options           More options.
  */
-function EA(variables, interval, number_coding, fitness_function, options)
+function EA(variables, interval, number_coding, fitnessFunction, options)
 {
 	// store variable names
 	this.variables = [];
@@ -33,11 +33,11 @@ function EA(variables, interval, number_coding, fitness_function, options)
 	this.number_coding = number_coding.toUpperCase() || 'INT';
 
 	// check fitness function
-	if(Object.prototype.toString.call(fitness_function) !== '[object Function]')
+	if(Object.prototype.toString.call(fitnessFunction) !== '[object Function]')
 		throw new Error('Fitness function must be valid function.');
 
 	// store fitness function
-	this.fitness_function = fitness_function;
+	this.fitnessFunction = fitnessFunction;
 
 	// store if individual have varibale length
 	this.variable_individual_length = (options && options.variableIndividualLength) || false;
@@ -77,14 +77,14 @@ EA.prototype = {
 						generateIndividualFunction = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
 			}
 
-			var fitness_function = this.fitness_function;
+			var fitnessFunction = this.fitnessFunction;
 			var variable_individual_length = this.variable_individual_length;
 			var max_individual_length = 100;
 		
 			while(population.count < n)
 			{
 				var variables = (variable_individual_length) ? Array.apply(null, Array(Math.round(Math.random() * max_individual_length))).map(function (_, i) {return i;}) : this.variables;
-				var individual = new EAIndividual(variables, generateIndividualFunction, fitness_function);
+				var individual = new EAIndividual(variables, generateIndividualFunction, fitnessFunction);
 
 				population.push(individual);
 			}
@@ -98,10 +98,10 @@ EA.prototype = {
  * Individiual for evolutionary algorithm.
  *
  * @param  array     variables  		Array of variable names.
- * @param  function  generate_function  Function that generates individual value.
- * @param  function  fitness_function   Function that computes fitness.
+ * @param  function  generateFunction  Function that generates individual value.
+ * @param  function  fitnessFunction   Function that computes fitness.
  */
-function EAIndividual(variables, generate_function, fitness_function)
+function EAIndividual(variables, generateFunction, fitnessFunction)
 {
 	this.variables = {};
 
@@ -110,11 +110,11 @@ function EAIndividual(variables, generate_function, fitness_function)
 		for(var v=0, len=variables.length; v<len; v++)
 		{
 			var variable = variables[v];
-			this.variables[variable] = generate_function(variable, v);
+			this.variables[variable] = generateFunction(variable, v);
 		}
 	}
 
-	this.fitness = fitness_function(this);
+	this.fitness = fitnessFunction(this);
 }
 
 EAIndividual.prototype = {
@@ -423,49 +423,182 @@ EAPopulation.prototype = (function()
 				return [];
 
 			var algorithm = this.algorithm;
+			var interval  = algorithm.interval;
+
 			var parents_length = parents.length;
+			var children       = new Array(parents_length);
+
+			var getVariables;	// function to get new variables for children
+			var generateFunction;
+			var fitnessFunction = algorithm.fitnessFunction;
 
 			switch(method)
 			{
 				case 'extremal_mutation':
 					if(this.algorithm.number_coding == 'INT')
-						var f = function() { return Math.round((Math.random() > 0.5) ? interval[1] : interval[0]); };
+						f = function() { return Math.round((Math.random() > 0.5) ? interval[1] : interval[0]); };
 					else
-						var f = function() { return (Math.random() > 0.5) ? interval[1] : interval[0]; };
+						f = function() { return (Math.random() > 0.5) ? interval[1] : interval[0]; };
 				case 'uniform_mutation':
 				default:
-					if(!f)
+					if(this.algorithm.number_coding == 'INT')
+						f = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
+					else
+						f = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+
+					var n = (options && options.number_of_mutated_values) || 1;
+
+					var current_individual_data; // store data for current individual
+					
+					getVariables = function(i)
 					{
-						if(this.algorithm.number_coding == 'INT')
-							var f = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
-						else
-							var f = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
-					}
+						current_individual_data = parents[i].variables;
+						var variable_keys = Object.keys(current_individual_data);
 
-					var n = (options && options.number_of_mutated_values) || 1;	
-					var interval = algorithm.interval; 
-					var fitness_function = algorithm.fitness_function; 
-					var children = new Array(parents_length);
+						return variable_keys;
+					};
 
-					for(var i=0; i<parents_length; i++)
+					generateFunction = function(variable, k)
 					{
-						var parent = parents[i];
+						var variables_length = Object.keys(current_individual_data).length;
 
-						var variables = parent.variables;
-						var variable_keys = Object.keys(variables);
-						var variables_length = variable_keys.length;
-
-						var pos = new Array(n);
+						pos = new Array(n);
 						for(var j=0; j<n; j++)
 						{
 							pos[j] = Math.floor(Math.random() * variables_length);
 						}
 						
-						children[i] = new EAIndividual(variable_keys, function(variable, k)
-						{
-							return (pos.indexOf(k) != -1) ? f() : variables[variable];
-						}, fitness_function);
+						return (pos.indexOf(k) != -1) ? f() : current_individual_data[variable];
 					}
+					break;
+				case 'shrink_mutation':
+					var max_shrink_size  = (options && options.max_shrink_size) || 5;
+
+					var current_individual_data; // store data for current individual
+
+					getVariables = function(i)
+					{
+						var parent = parents[i];
+
+						var variable_keys    = Object.keys(parent.variables);
+						var variables_length = variable_keys.length;
+						var start_pos        = Math.round(Math.random() * variables_length);
+						var shrink_size      = Math.round(Math.random() * max_shrink_size);
+
+						current_individual_data = parent.toArray();
+						current_individual_data.splice(start_pos, shrink_size);
+
+						return Array.apply(null, Array(current_individual_data.length)).map(function (_, i) {return i;});
+					};
+
+					generateFunction = function(variable)
+					{
+						return current_individual_data[variable];
+					};
+					break;
+				case 'growth_mutation':
+					var max_growth_size = (options && options.max_growth_size) || 5;
+
+					var current_individual_data; // store data for current individual
+
+					getVariables = function(i)
+					{
+						var parent = parents[i];
+
+						var variable_keys    = Object.keys(parent.variables);
+						var variables_length = variable_keys.length;
+						var pos              = Math.round(Math.random() * variables_length); // position to insert
+						var growth_size      = Math.round(Math.random() * max_growth_size);
+
+						var variables = Array.apply(null, Array(growth_size)).map(function (_, i) {
+							return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); 
+						});
+
+						current_individual_data = parent.toArray();
+						variables.unshift(0);
+						variables.unshift(pos);
+						Array.prototype.splice.apply(current_individual_data, variables);
+
+						return Array.apply(null, Array(current_individual_data.length)).map(function (_, i) {return i;});
+					};
+
+					generateFunction = function(variable)
+					{
+						return current_individual_data[variable];
+					};
+					break;
+				case 'swap_mutation':
+					var max_swap_size = (options && options.max_swap_size) || 5;
+
+					var current_individual_data; // store data for current individual
+
+					getVariables = function(i)
+					{
+						var parent = parents[i];
+
+						var variable_keys    = Object.keys(parent.variables);
+						var variables_length = variable_keys.length;
+						var swap_size        = Math.round(Math.random() * max_swap_size);
+						var max_index        = variables_length - swap_size;
+						var pos1             = Math.round(Math.random() * max_index);
+						var pos2             = Math.min(Math.round(Math.random() * (max_index - pos1)) + pos1, max_index);
+
+						current_individual_data = parent.toArray();
+						var data2 = current_individual_data.slice(pos2, pos2 + swap_size);
+						data2.unshift(swap_size);
+						data2.unshift(pos1);
+						var data1 = Array.prototype.splice.apply(current_individual_data, data2);
+						data1.unshift(swap_size);
+						data1.unshift(pos2);
+						Array.prototype.splice.apply(current_individual_data, data1);
+
+						return variable_keys;
+					};
+
+					generateFunction = function(variable)
+					{
+						return current_individual_data[variable];
+					};
+					break;
+				case 'replace_mutation':
+					var max_replace_size = (options && options.max_replace_size) || 5;
+					var max_insert_size  = (options && options.max_insert_size) || 5;
+
+					var current_individual_data; // store data for current individual
+
+					getVariables = function(i)
+					{
+						var parent = parents[i];
+
+						var variable_keys    = Object.keys(parent.variables);
+						var variables_length = variable_keys.length;
+						var start_pos        = Math.round(Math.random() * variables_length);
+						var replace_size     = Math.round(Math.random() * max_replace_size);
+						var insert_size      = Math.round(Math.random() * max_insert_size);
+
+						var variables = Array.apply(null, Array(insert_size)).map(function (_, i) {
+							return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); 
+						});
+
+						current_individual_data = parent.toArray();
+						variables.unshift(replace_size);
+						variables.unshift(start_pos);
+						Array.prototype.splice.apply(current_individual_data, variables);
+
+						return Array.apply(null, Array(current_individual_data.length)).map(function (_, i) {return i;});						
+					};
+
+					generateFunction = function(variable)
+					{
+						return current_individual_data[variable];
+					};
+					break;
+			}
+
+			// mutate all parents and create children
+			for(var i=0; i<parents_length; i++)
+			{
+				children[i] = new EAIndividual(getVariables(i), generateFunction, fitnessFunction);
 			}
 
 			return children;
