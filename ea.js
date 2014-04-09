@@ -2,6 +2,8 @@
  * Copyright 2014 Martin Vyšňovský (martinvysnovsky@gmail.com)
  */
 
+'use strict';
+
 /**
  * Evolutionary algorithm constructor.
  *
@@ -67,8 +69,8 @@ EA.prototype = {
 			var generateIndividualFunction;
 			switch(method)
 			{
-				case 'random':
 				default:
+				case 'random':
 					var interval = this.interval;
 
 					if(this.number_coding == 'INT')
@@ -83,7 +85,7 @@ EA.prototype = {
 		
 			while(population.count < n)
 			{
-				var variables = (variable_individual_length) ? Array.apply(null, Array(Math.round(Math.random() * max_individual_length))).map(function (_, i) {return i;}) : this.variables;
+				var variables = (variable_individual_length) ? Array.apply(null, new Array(Math.round(Math.random() * max_individual_length))).map(function (_, i) { return i; }) : this.variables;
 				var individual = new EAIndividual(variables, generateIndividualFunction, fitnessFunction);
 
 				population.push(individual);
@@ -97,7 +99,7 @@ EA.prototype = {
 /**
  * Individiual for evolutionary algorithm.
  *
- * @param  array     variables  		Array of variable names.
+ * @param  array     variables         Array of variable names.
  * @param  function  generateFunction  Function that generates individual value.
  * @param  function  fitnessFunction   Function that computes fitness.
  */
@@ -124,9 +126,9 @@ EAIndividual.prototype = {
 	{
 		var variables = this.variables;
 
-		ret = new Array();
+		var ret = [];
 
-		for(p in variables)
+		for(var p in variables)
 		{
 			if(this.hasOwnProperty(p))
 				ret.push(p + ': ' + variables[p]);
@@ -141,9 +143,9 @@ EAIndividual.prototype = {
 	{
 		var variables = this.variables;
 
-		ret = new Array();
+		var ret = [];
 
-		for(p in variables)
+		for(var p in variables)
 		{
 			ret.push(variables[p]);
 		}
@@ -151,35 +153,35 @@ EAIndividual.prototype = {
 		return ret;
 	}
 
-}
+};
 
 /**
  * Population of individuals.
  *
  * @param  array  algorithm  Algorithm that sreates this population.
  */
-function EAPopulation(algorithm)
+var EAPopulation = (function()
 {
-	if(!(algorithm instanceof EA))
-		throw new Error('First argument must be algorithm that creates this population.');
-	
-	this.algorithm = algorithm;
-	this.individuals = new Array();
-}
+	var Constructor = function(algorithm)
+	{
+		if(!(algorithm instanceof EA))
+			throw new Error('First argument must be algorithm that creates this population.');
+		
+		this.algorithm = algorithm;
+		this.individuals = [];
+	};
 
-EAPopulation.prototype = (function()
-{
 	/**
 	 * Get n random individuals in population.
 	 *
-	 * @param   int    n  Number of individuals.
+	 * @param   array  individuals  Individuals in population.
+	 * @param   int    n            Number of individuals.
 	 *
 	 * @return  array     Array of individuals.
 	 */
-	function getRandomParents(n)
+	function getRandomParents(individuals, n)
 	{
 		var parents            = new Array(n);
-		var individuals        = this.individuals;
 		var individuals_length = individuals.length;
 
 		for(var i=0; i<n; i++)
@@ -195,13 +197,15 @@ EAPopulation.prototype = (function()
 	/**
 	 * Get n best individuals in population.
 	 *
-	 * @param   int    n  Number of individuals.
+	 * @param   array   individuals  Individuals in population.
+	 * @param   int     n            Number of individuals.
 	 *
 	 * @return  array     Array of best individuals.
 	 */
-	function getBestParents(n)
+	function getBestParents(individuals, n)
 	{
-		var individuals = this.individuals.slice(0);
+		// make copy of array
+		individuals = individuals.slice(0);
 
 		individuals.sort(function(a, b) {
 			return b.fitness - a.fitness;
@@ -213,15 +217,15 @@ EAPopulation.prototype = (function()
 	/**
 	 * Get n individuals from population using roulette method.
 	 *
-	 * @param   string  method  	  Method to use.
-	 * @param   int     n  			  Number of individuals.
+	 * @param   array   individuals   Individuals in population.
+	 * @param   string  method        Method to use.
+	 * @param   int     n             Number of individuals.
 	 * @param   bool    shuffleOrder  Shuffle order of individuals. This is used only for univerzal method.
 	 *
-	 * @return  array       	Array of individuals.
+	 * @return  array                 Array of individuals.
 	 */
-	function getParentsFromRoulette(method, n, shuffleOrder)
+	function getParentsFromRoulette(individuals, method, n, shuffleOrder)
 	{
-		var individuals   = this.individuals;
 		var fitnessValues = individuals.slice(0).map(function(individual)
 		{
 			return Math.max(0, individual.fitness);
@@ -233,16 +237,16 @@ EAPopulation.prototype = (function()
 
 		switch(method)
 		{
+			default:
 			case 'with_replacement':
 			case 'without_replacement':
-			default:
 				// compute size of roulette
 				rouletteSize = individuals.reduce(function(a, b)
 				{
 					return {fitness: a.fitness + Math.max(0, b.fitness)};
 				}, {fitness: 0}).fitness;
 
-				if(rouletteSize == 0)
+				if(rouletteSize === 0)
 					return [];
 				break;
 			case 'remainder_with_replacement':
@@ -262,7 +266,7 @@ EAPopulation.prototype = (function()
 					return {fitness: a.fitness + Math.max(0, b.fitness) % 1};
 				}, {fitness: 0}).fitness;
 
-				if(rouletteSize == 0)
+				if(rouletteSize === 0)
 					return parents;
 
 				fitnessValues = fitnessValues.map(function(fitness)
@@ -271,15 +275,15 @@ EAPopulation.prototype = (function()
 				});
 				break;
 			case 'univerzal':
-				var shuffleOrder = shuffleOrder || false;
-				var keys         = Object.keys(individuals);
+				shuffleOrder = shuffleOrder || false;
+				var keys     = Object.keys(individuals);
 
 				if(shuffleOrder)
 				{
 					// randomly shuffle order of individuals
 					for(var a=0, len=keys.length; a<len; a++)
 					{
-						b = a + Math.round(Math.random() * (len - a - 1));
+						var b = a + Math.round(Math.random() * (len - a - 1));
 						var temp = keys[a];
 						keys[a] = keys[b];
 						keys[b] = temp;
@@ -292,7 +296,7 @@ EAPopulation.prototype = (function()
 					return {fitness: a.fitness + Math.max(0, b.fitness)};
 				}, {fitness: 0}).fitness;
 
-				if(rouletteSize == 0)
+				if(rouletteSize === 0)
 					return [];
 
 				var pointerStep = rouletteSize / n;
@@ -300,8 +304,8 @@ EAPopulation.prototype = (function()
 				// compute start position
 				var roulette_position = Math.random() * pointerStep;
 
-				f = 0;
-				j = 0;
+				var f = 0;
+				var j = 0;
 
 				// select n parents
 				for(i; i<n; i++)
@@ -331,7 +335,7 @@ EAPopulation.prototype = (function()
 		for(i; i<n; i++)
 		{
 			// twist roulette
-			var roulette_position = Math.random() * rouletteSize;
+			roulette_position = Math.random() * rouletteSize;
 
 			// find parent that is at computed position in roulette
 			f = 0;
@@ -348,9 +352,7 @@ EAPopulation.prototype = (function()
 		return parents;
 	}
 
-	return {
-		constructor: EAPopulation,
-
+	Constructor.prototype = {
 		/**
 		 * Count individuals in population.
 		 *
@@ -392,7 +394,7 @@ EAPopulation.prototype = (function()
 		 * Get n best individuals in population.
 		 *
 		 * @param   string  method   Method to use.
-		 * @param   int     n  		 Number of individuals.
+		 * @param   int     n        Number of individuals.
 		 * @param   object  options  Some other settings for methods.
 		 *
 		 * @return  array      Array of best individuals.
@@ -402,14 +404,12 @@ EAPopulation.prototype = (function()
 			switch(method)
 			{
 				case 'best':
-					return getBestParents.call(this, n);
-					break;
+					return getBestParents(this.individuals, n);
 				case 'roulette':
 					var rouletteMethod = options.rouletteMethod || 'with_replacement';
-					return getParentsFromRoulette.call(this, rouletteMethod, n, options.shuffleOrder);
-					break;
+					return getParentsFromRoulette(this.individuals, rouletteMethod, n, options.shuffleOrder);
 				case 'random':
-					return getRandomParents.call(this, n);
+					return getRandomParents(this.individuals, n);
 				default:
 
 			}
@@ -419,7 +419,7 @@ EAPopulation.prototype = (function()
 
 		applyGeneticOperators: function(parents, method, options)
 		{
-			if(!parents || parents.length == 0)
+			if(!parents || parents.length === 0)
 				return [];
 
 			var algorithm = this.algorithm;
@@ -432,6 +432,9 @@ EAPopulation.prototype = (function()
 			var generateFunction;
 			var fitnessFunction = algorithm.fitnessFunction;
 
+			var f;
+			var current_individual_data;
+
 			switch(method)
 			{
 				case 'extremal_mutation':
@@ -439,8 +442,9 @@ EAPopulation.prototype = (function()
 						f = function() { return Math.round((Math.random() > 0.5) ? interval[1] : interval[0]); };
 					else
 						f = function() { return (Math.random() > 0.5) ? interval[1] : interval[0]; };
-				case 'uniform_mutation':
+					// fall through
 				default:
+				case 'uniform_mutation':
 					if(this.algorithm.number_coding == 'INT')
 						f = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
 					else
@@ -448,8 +452,6 @@ EAPopulation.prototype = (function()
 
 					var n = (options && options.number_of_mutated_values) || 1;
 
-					var current_individual_data; // store data for current individual
-					
 					getVariables = function(i)
 					{
 						current_individual_data = parents[i].variables;
@@ -462,19 +464,17 @@ EAPopulation.prototype = (function()
 					{
 						var variables_length = Object.keys(current_individual_data).length;
 
-						pos = new Array(n);
+						var pos = new Array(n);
 						for(var j=0; j<n; j++)
 						{
 							pos[j] = Math.floor(Math.random() * variables_length);
 						}
 						
 						return (pos.indexOf(k) != -1) ? f() : current_individual_data[variable];
-					}
+					};
 					break;
 				case 'shrink_mutation':
 					var max_shrink_size  = (options && options.max_shrink_size) || 5;
-
-					var current_individual_data; // store data for current individual
 
 					getVariables = function(i)
 					{
@@ -488,7 +488,7 @@ EAPopulation.prototype = (function()
 						current_individual_data = parent.toArray();
 						current_individual_data.splice(start_pos, shrink_size);
 
-						return Array.apply(null, Array(current_individual_data.length)).map(function (_, i) {return i;});
+						return Array.apply(null, new Array(current_individual_data.length)).map(function (_, i) { return i; });
 					};
 
 					generateFunction = function(variable)
@@ -499,8 +499,6 @@ EAPopulation.prototype = (function()
 				case 'growth_mutation':
 					var max_growth_size = (options && options.max_growth_size) || 5;
 
-					var current_individual_data; // store data for current individual
-
 					getVariables = function(i)
 					{
 						var parent = parents[i];
@@ -510,8 +508,8 @@ EAPopulation.prototype = (function()
 						var pos              = Math.round(Math.random() * variables_length); // position to insert
 						var growth_size      = Math.round(Math.random() * max_growth_size);
 
-						var variables = Array.apply(null, Array(growth_size)).map(function (_, i) {
-							return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); 
+						var variables = Array.apply(null, new Array(growth_size)).map(function () {
+							return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]);
 						});
 
 						current_individual_data = parent.toArray();
@@ -519,7 +517,7 @@ EAPopulation.prototype = (function()
 						variables.unshift(pos);
 						Array.prototype.splice.apply(current_individual_data, variables);
 
-						return Array.apply(null, Array(current_individual_data.length)).map(function (_, i) {return i;});
+						return Array.apply(null, new Array(current_individual_data.length)).map(function (_, i) {return i;});
 					};
 
 					generateFunction = function(variable)
@@ -529,8 +527,6 @@ EAPopulation.prototype = (function()
 					break;
 				case 'swap_mutation':
 					var max_swap_size = (options && options.max_swap_size) || 5;
-
-					var current_individual_data; // store data for current individual
 
 					getVariables = function(i)
 					{
@@ -564,8 +560,6 @@ EAPopulation.prototype = (function()
 					var max_replace_size = (options && options.max_replace_size) || 5;
 					var max_insert_size  = (options && options.max_insert_size) || 5;
 
-					var current_individual_data; // store data for current individual
-
 					getVariables = function(i)
 					{
 						var parent = parents[i];
@@ -576,8 +570,8 @@ EAPopulation.prototype = (function()
 						var replace_size     = Math.round(Math.random() * max_replace_size);
 						var insert_size      = Math.round(Math.random() * max_insert_size);
 
-						var variables = Array.apply(null, Array(insert_size)).map(function (_, i) {
-							return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); 
+						var variables = Array.apply(null, new Array(insert_size)).map(function () {
+							return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]);
 						});
 
 						current_individual_data = parent.toArray();
@@ -585,7 +579,7 @@ EAPopulation.prototype = (function()
 						variables.unshift(start_pos);
 						Array.prototype.splice.apply(current_individual_data, variables);
 
-						return Array.apply(null, Array(current_individual_data.length)).map(function (_, i) {return i;});						
+						return Array.apply(null, new Array(current_individual_data.length)).map(function (_, i) {return i;});
 					};
 
 					generateFunction = function(variable)
@@ -617,11 +611,12 @@ EAPopulation.prototype = (function()
 		replacement: function(parents, children, method, options)
 		{
 			var individuals_length = this.individuals.length;
+			var newGenerationSize;
 
 			switch(method)
 			{
 				case 'comma_strategy':
-					var newGenerationSize = (options && options.newGenerationSize) || individuals_length;
+					newGenerationSize = (options && options.newGenerationSize) || individuals_length;
 
 					// sort children by fitness
 					children.sort(function(a, b) {
@@ -639,7 +634,7 @@ EAPopulation.prototype = (function()
 						return b.fitness - a.fitness;
 					});
 
-					var parents = parents.slice(0, num_parents);
+					parents = parents.slice(0, num_parents);
 
 					// sort children by fitness
 					children.sort(function(a, b) {
@@ -649,7 +644,7 @@ EAPopulation.prototype = (function()
 					this.individuals = parents.concat(children.slice(0, generationGap));
 					break;
 				case 'plus_strategy':
-					var newGenerationSize = (options && options.newGenerationSize) || individuals_length;
+					newGenerationSize = (options && options.newGenerationSize) || individuals_length;
 					var plus = parents.concat(children);
 
 					// sort parents and children by fitness
@@ -659,11 +654,12 @@ EAPopulation.prototype = (function()
 
 					this.individuals = plus.slice(0, newGenerationSize);
 					break;
-				case 'generational':
 				default:
+				case 'generational':
 					this.individuals = children;
 			}
 		}
-	}
+	};
 
+	return Constructor;
 }());
