@@ -51,15 +51,14 @@ EA.prototype = {
 	/**
 	 * Initialize population from individuals.
 	 *
-	 * @param   string  method  Name of methot to use. Supported values: random
 	 * @param   int     n       Number of individuals.
+	 * @param   string  method  Name of methot to use. Supported values: random
 	 *
 	 * @return  array           Population.
 	 */
-	initializePopulation: function(method, n)
+	initializePopulation: function(n, method)
 	{
 		// defaults
-		method = method || 'random';
 		n = n || 0;
 
 		var population = new EAPopulation(this);
@@ -67,16 +66,24 @@ EA.prototype = {
 		if(n > 0)
 		{
 			var generateIndividualFunction;
-			switch(method)
-			{
-				default:
-				case 'random':
-					var interval = this.interval;
 
-					if(this.number_coding == 'INT')
-						generateIndividualFunction = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
-					else
-						generateIndividualFunction = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+			if(Object.prototype.toString.call(method) === '[object Function]')
+				generateIndividualFunction = method;
+			else
+			{
+				method = method || 'random';
+
+				switch(method)
+				{
+					default:
+					case 'random':
+						var interval = this.interval;
+
+						if(this.number_coding == 'INT')
+							generateIndividualFunction = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
+						else
+							generateIndividualFunction = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+				}
 			}
 
 			var fitnessFunction = this.fitnessFunction;
@@ -112,7 +119,7 @@ function EAIndividual(variables, generateFunction, fitnessFunction)
 		for(var v=0, len=variables.length; v<len; v++)
 		{
 			var variable = variables[v];
-			this.variables[variable] = generateFunction(variable, v);
+			this.variables[variable] = generateFunction(this, variable, v);
 		}
 	}
 
@@ -566,7 +573,7 @@ var EAPopulation = (function()
 						return variable_keys;
 					};
 
-					generateFunction = function(variable, k)
+					generateFunction = function(individual, variable, k)
 					{
 						var variables_length = Object.keys(current_individual_data).length;
 
@@ -597,7 +604,7 @@ var EAPopulation = (function()
 						return Array.apply(null, new Array(current_individual_data.length)).map(function (_, i) { return i; });
 					};
 
-					generateFunction = function(variable)
+					generateFunction = function(individual, variable)
 					{
 						return current_individual_data[variable];
 					};
@@ -626,7 +633,7 @@ var EAPopulation = (function()
 						return Array.apply(null, new Array(current_individual_data.length)).map(function (_, i) {return i;});
 					};
 
-					generateFunction = function(variable)
+					generateFunction = function(individual, variable)
 					{
 						return current_individual_data[variable];
 					};
@@ -657,7 +664,7 @@ var EAPopulation = (function()
 						return variable_keys;
 					};
 
-					generateFunction = function(variable)
+					generateFunction = function(individual, variable)
 					{
 						return current_individual_data[variable];
 					};
@@ -688,7 +695,7 @@ var EAPopulation = (function()
 						return Array.apply(null, new Array(current_individual_data.length)).map(function (_, i) {return i;});
 					};
 
-					generateFunction = function(variable)
+					generateFunction = function(individual, variable)
 					{
 						return current_individual_data[variable];
 					};
