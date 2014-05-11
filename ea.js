@@ -417,7 +417,113 @@ var EAPopulation = (function()
 			return [];
 		},
 
-		applyGeneticOperators: function(parents, method, options)
+		getParentGroups: function(parents, n, method, group_size)
+		{
+			if(!parents || parents.length === 0)
+				return [];
+
+			n = n || 0;
+
+			if(n == 0)
+				return [];
+
+			group_size = group_size || 2;
+
+			var parents_length = parents.length;
+			var groups         = [];
+
+			switch(method)
+			{
+				default:
+				case 'random':
+					for(var i=0; i<n; i++)
+					{
+						var p1 = parents[Math.floor(Math.random() * parents_length)];
+						var p2 = parents[Math.floor(Math.random() * parents_length)];
+
+						groups.push([p1, p2]);
+					}
+					break;
+			}
+
+			return groups;
+		},
+
+		crossover: function(groups, method, options)
+		{
+			if(!groups || groups.length === 0)
+				return [];
+
+			var groups_length = groups.length;
+			var children      = [];
+
+			var fitnessFunction = this.algorithm.fitnessFunction;
+			var crossover_function;
+
+			switch(method)
+			{
+				default:
+				case 'one_point':
+					var different_points = (options && options.different_points) || false;
+
+					crossover_function = function(items)
+					{
+						var size = items.length;
+
+						if(size == 0)
+							return [];
+
+						if(size == 1)
+							return items[0];
+
+						// get variables from parents
+						var p1 = items[0].variables;
+						var p2 = items[1].variables;
+
+						// create array like objects
+						p1.length = Object.keys(p1).length;
+						p2.length = Object.keys(p2).length;
+
+						// compute cut indexes
+						var index1 = Math.round(Math.random() * p1.length);
+						var index2 = (different_points) ? Math.round(Math.random() * p2.length) : index1;
+
+						// crossover
+						var v1 = Array.prototype.slice.call(p1, 0, index1).concat(Array.prototype.slice.call(p2, index2));
+						var v2 = Array.prototype.slice.call(p2, 0, index2).concat(Array.prototype.slice.call(p1, index1));
+
+						var ret = [];
+
+						// create new childrens
+						var v1_keys = Object.keys(v1);
+						if(v1_keys.length > 0)
+						{
+							var ch1 = new EAIndividual(v1_keys, function(v) { return v1[v]; }, fitnessFunction);
+							ret.push(ch1);
+						}
+
+						var v2_keys = Object.keys(v2);
+						if(v2_keys.length > 0)
+						{
+							var ch2 = new EAIndividual(v2_keys, function(v) { return v2[v]; }, fitnessFunction);
+							ret.push(ch2);
+						}
+
+						return ret;
+					}
+					break;
+			}
+
+			// mutate all parents and create children
+			for(var i=0; i<groups_length; i++)
+			{
+				children = children.concat(crossover_function(groups[i]));
+			}
+
+			return children;
+		},
+
+		mutation: function(parents, method, options)
 		{
 			if(!parents || parents.length === 0)
 				return [];
