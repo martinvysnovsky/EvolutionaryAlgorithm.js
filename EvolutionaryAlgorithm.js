@@ -13,7 +13,7 @@
  * @param  function  fitnessFunction  Fitness function.
  * @param  object    options           More options.
  */
-function EA(variables, interval, number_coding, fitnessFunction, options)
+function EvolutionaryAlgorithm(variables, interval, number_coding, fitnessFunction, options)
 {
 	// store variable names
 	this.variables = [];
@@ -45,8 +45,8 @@ function EA(variables, interval, number_coding, fitnessFunction, options)
 	this.variable_individual_length = (options && options.variableIndividualLength) || false;
 }
 
-EA.prototype = {
-	constructor: EA,
+EvolutionaryAlgorithm.prototype = {
+	constructor: EvolutionaryAlgorithm,
 
 	/**
 	 * Initialize population from individuals.
@@ -61,7 +61,7 @@ EA.prototype = {
 		// defaults
 		n = n || 0;
 
-		var population = new EAPopulation(this);
+		var population = new EvolutionaryAlgorithmPopulation(this);
 
 		if(n > 0)
 		{
@@ -93,7 +93,7 @@ EA.prototype = {
 			while(population.count < n)
 			{
 				var variables = (variable_individual_length) ? Array.apply(null, new Array(Math.floor(Math.random() * max_individual_length) + 1)).map(function (_, i) { return i; }) : this.variables;
-				var individual = new EAIndividual(variables, generateIndividualFunction, fitnessFunction);
+				var individual = new EvolutionaryAlgorithmIndividual(variables, generateIndividualFunction, fitnessFunction);
 
 				population.push(individual);
 			}
@@ -110,7 +110,7 @@ EA.prototype = {
  * @param  function  generateFunction  Function that generates individual value.
  * @param  function  fitnessFunction   Function that computes fitness.
  */
-function EAIndividual(variables, generateFunction, fitnessFunction)
+function EvolutionaryAlgorithmIndividual(variables, generateFunction, fitnessFunction)
 {
 	this.variables = {};
 
@@ -126,8 +126,8 @@ function EAIndividual(variables, generateFunction, fitnessFunction)
 	this.fitness = fitnessFunction(this);
 }
 
-EAIndividual.prototype = {
-	constructor: EAIndividual,
+EvolutionaryAlgorithmIndividual.prototype = {
+	constructor: EvolutionaryAlgorithmIndividual,
 
 	toString: function()
 	{
@@ -167,11 +167,11 @@ EAIndividual.prototype = {
  *
  * @param  array  algorithm  Algorithm that sreates this population.
  */
-var EAPopulation = (function()
+var EvolutionaryAlgorithmPopulation = (function()
 {
 	var Constructor = function(algorithm)
 	{
-		if(!(algorithm instanceof EA))
+		if(!(algorithm instanceof EvolutionaryAlgorithm))
 			throw new Error('First argument must be algorithm that creates this population.');
 		
 		this.algorithm = algorithm;
@@ -379,8 +379,8 @@ var EAPopulation = (function()
 		 */
 		push: function(individual)
 		{
-			if(!(individual instanceof EAIndividual))
-				throw new Error('Population must consists only from EAIndividual objects.');
+			if(!(individual instanceof EvolutionaryAlgorithmIndividual))
+				throw new Error('Population must consists only from EvolutionaryAlgorithmIndividual objects.');
 
 			this.individuals.push(individual);
 		},
@@ -523,14 +523,14 @@ var EAPopulation = (function()
 						var v1_keys = Object.keys(v1);
 						if(v1_keys.length > 0)
 						{
-							var ch1 = new EAIndividual(v1_keys, function(individual, v) { return v1[v]; }, fitnessFunction);
+							var ch1 = new EvolutionaryAlgorithmIndividual(v1_keys, function(individual, v) { return v1[v]; }, fitnessFunction);
 							ret.push(ch1);
 						}
 
 						var v2_keys = Object.keys(v2);
 						if(v2_keys.length > 0)
 						{
-							var ch2 = new EAIndividual(v2_keys, function(individual, v) { return v2[v]; }, fitnessFunction);
+							var ch2 = new EvolutionaryAlgorithmIndividual(v2_keys, function(individual, v) { return v2[v]; }, fitnessFunction);
 							ret.push(ch2);
 						}
 
@@ -738,7 +738,7 @@ var EAPopulation = (function()
 				var variables = getVariables(i);
 
 				if(variables.length > 0)
-					children[i] = new EAIndividual(variables, generateFunction, fitnessFunction);
+					children[i] = new EvolutionaryAlgorithmIndividual(variables, generateFunction, fitnessFunction);
 				else
 					i--;
 			}

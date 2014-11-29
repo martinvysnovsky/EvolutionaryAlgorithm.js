@@ -7,7 +7,7 @@
 </head>
 <body>
 
-<script src="./ea.js"></script>
+<script src="./EvolutionaryAlgorithm.js"></script>
 <script>
 	// measure time taken by algorithm
 	var start = new Date().getTime();
@@ -21,7 +21,7 @@
 	// second argument is interval of this values [min, max]
 	// third argument is number coding - INT / REAL
 	// fourth argument is fitness funciton
-	var ea = new EA(['x', 'y', 'z', 'm', 'n', 'p'], [-3, 3], 'INT', fitness_function);
+	var ea = new EvolutionaryAlgorithm(['x', 'y', 'z', 'm', 'n', 'p'], [-3, 3], 'INT', fitness_function);
 
 	// initialize population
 	// allowed methods: random
