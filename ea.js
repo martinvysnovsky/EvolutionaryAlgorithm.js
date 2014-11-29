@@ -92,7 +92,7 @@ EA.prototype = {
 		
 			while(population.count < n)
 			{
-				var variables = (variable_individual_length) ? Array.apply(null, new Array(Math.round(Math.random() * max_individual_length))).map(function (_, i) { return i; }) : this.variables;
+				var variables = (variable_individual_length) ? Array.apply(null, new Array(Math.floor(Math.random() * max_individual_length) + 1)).map(function (_, i) { return i; }) : this.variables;
 				var individual = new EAIndividual(variables, generateIndividualFunction, fitnessFunction);
 
 				population.push(individual);
@@ -424,6 +424,16 @@ var EAPopulation = (function()
 			return [];
 		},
 
+		/**
+		 * Method to get groups of parents, that goes to crossover.
+		 *
+		 * @param   array   parents     Selected parents.
+		 * @param   int     n           Number of groups.
+		 * @param   string  method      Method to use.
+		 * @param   int     group_size  Number of parents in group.
+		 *
+		 * @return  array               Groups.
+		 */
 		getParentGroups: function(parents, n, method, group_size)
 		{
 			if(!parents || parents.length === 0)
@@ -456,6 +466,15 @@ var EAPopulation = (function()
 			return groups;
 		},
 
+		/**
+		 * Method to make crossover.
+		 *
+		 * @param   array   groups   Array of groups.
+		 * @param   string  method   Method to use.
+		 * @param   object  options  Options.
+		 *
+		 * @return  array            Created children.
+		 */
 		crossover: function(groups, method, options)
 		{
 			if(!groups || groups.length === 0)
@@ -484,20 +503,19 @@ var EAPopulation = (function()
 							return items[0];
 
 						// get variables from parents
-						var p1 = items[0].variables;
-						var p2 = items[1].variables;
+						var p1 = items[0].toArray();
+						var p2 = items[1].toArray();
 
-						// create array like objects
-						p1.length = Object.keys(p1).length;
-						p2.length = Object.keys(p2).length;
+						if(p1.length < 2 || p2.length < 2)
+							return [];
 
 						// compute cut indexes
-						var index1 = Math.round(Math.random() * p1.length);
-						var index2 = (different_points) ? Math.round(Math.random() * p2.length) : index1;
+						var index1 = Math.round(Math.random() * p1.length - 2) + 1;
+						var index2 = (different_points) ? Math.round(Math.random() * p2.length - 2) + 1 : index1;
 
 						// crossover
-						var v1 = Array.prototype.slice.call(p1, 0, index1).concat(Array.prototype.slice.call(p2, index2));
-						var v2 = Array.prototype.slice.call(p2, 0, index2).concat(Array.prototype.slice.call(p1, index1));
+						var v1 = p1.slice(0, index1).concat(p2.slice(index2));
+						var v2 = p2.slice(0, index2).concat(p1.slice(index1));
 
 						var ret = [];
 
@@ -505,14 +523,14 @@ var EAPopulation = (function()
 						var v1_keys = Object.keys(v1);
 						if(v1_keys.length > 0)
 						{
-							var ch1 = new EAIndividual(v1_keys, function(v) { return v1[v]; }, fitnessFunction);
+							var ch1 = new EAIndividual(v1_keys, function(individual, v) { return v1[v]; }, fitnessFunction);
 							ret.push(ch1);
 						}
 
 						var v2_keys = Object.keys(v2);
 						if(v2_keys.length > 0)
 						{
-							var ch2 = new EAIndividual(v2_keys, function(v) { return v2[v]; }, fitnessFunction);
+							var ch2 = new EAIndividual(v2_keys, function(individual, v) { return v2[v]; }, fitnessFunction);
 							ret.push(ch2);
 						}
 
@@ -530,6 +548,15 @@ var EAPopulation = (function()
 			return children;
 		},
 
+		/**
+		 * Method to meke mutation
+		 *
+		 * @param   array   parents  Individuals to mutate.
+		 * @param   string  method   Method to use.
+		 * @param   object  options  Options.
+		 *
+		 * @return  array            Mutated individuals
+		 */
 		mutation: function(parents, method, options)
 		{
 			if(!parents || parents.length === 0)
@@ -673,15 +700,18 @@ var EAPopulation = (function()
 					var max_replace_size = (options && options.max_replace_size) || 5;
 					var max_insert_size  = (options && options.max_insert_size) || 5;
 
+					max_replace_size++;
+					max_insert_size++;
+
 					getVariables = function(i)
 					{
 						var parent = parents[i];
 
 						var variable_keys    = Object.keys(parent.variables);
 						var variables_length = variable_keys.length;
-						var start_pos        = Math.round(Math.random() * variables_length);
-						var replace_size     = Math.round(Math.random() * max_replace_size);
-						var insert_size      = Math.round(Math.random() * max_insert_size);
+						var start_pos        = Math.floor(Math.random() * variables_length);
+						var replace_size     = Math.floor(Math.random() * max_replace_size);
+						var insert_size      = Math.floor(Math.random() * max_insert_size);
 
 						var variables = Array.apply(null, new Array(insert_size)).map(function () {
 							return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]);
@@ -705,7 +735,12 @@ var EAPopulation = (function()
 			// mutate all parents and create children
 			for(var i=0; i<parents_length; i++)
 			{
-				children[i] = new EAIndividual(getVariables(i), generateFunction, fitnessFunction);
+				var variables = getVariables(i);
+
+				if(variables.length > 0)
+					children[i] = new EAIndividual(variables, generateFunction, fitnessFunction);
+				else
+					i--;
 			}
 
 			return children;
