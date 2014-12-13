@@ -7,11 +7,11 @@
 /**
  * Evolutionary algorithm constructor.
  *
- * @param  array     variables         Variables for algorithm.
- * @param  array     interval          Interval of values that variables cam make.
- * @param  string    number_coding     Typ of numbers that can be used. ('INT', 'REAL')
+ * @param  array     variables        Variables for algorithm.
+ * @param  array     interval         Interval of values that variables cam make.
+ * @param  string    number_coding    Type of numbers that can be used. ('INT', 'REAL')
  * @param  function  fitnessFunction  Fitness function.
- * @param  object    options           More options.
+ * @param  object    options          More options.
  */
 function EvolutionaryAlgorithm(variables, interval, number_coding, fitnessFunction, options)
 {
@@ -585,12 +585,15 @@ var EvolutionaryAlgorithmPopulation = (function()
 					// fall through
 				default:
 				case 'uniform_mutation':
-					if(this.algorithm.number_coding == 'INT')
-						f = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
-					else
-						f = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+					if(f == undefined)
+					{
+						if(this.algorithm.number_coding == 'INT')
+							f = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
+						else
+							f = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+					}
 
-					var n = (options && options.number_of_mutated_values) || 1;
+					var probability = (options && options.probability) || 0.1;
 
 					getVariables = function(i)
 					{
@@ -601,16 +604,8 @@ var EvolutionaryAlgorithmPopulation = (function()
 					};
 
 					generateFunction = function(individual, variable, k)
-					{
-						var variables_length = Object.keys(current_individual_data).length;
-
-						var pos = new Array(n);
-						for(var j=0; j<n; j++)
-						{
-							pos[j] = Math.floor(Math.random() * variables_length);
-						}
-						
-						return (pos.indexOf(k) != -1) ? f() : current_individual_data[variable];
+					{						
+						return (Math.random() <= probability) ? f() : current_individual_data[variable];
 					};
 					break;
 				case 'shrink_mutation':
