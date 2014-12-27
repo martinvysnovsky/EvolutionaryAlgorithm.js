@@ -480,6 +480,8 @@ var EvolutionaryAlgorithmPopulation = (function()
 			if(!groups || groups.length === 0)
 				return [];
 
+			options = options || {};
+
 			var groups_length = groups.length;
 			var children      = [];
 
@@ -490,7 +492,7 @@ var EvolutionaryAlgorithmPopulation = (function()
 			{
 				default:
 				case 'one_point':
-					var different_points = (options && options.different_points) || false;
+					var different_points = options.different_points || false;
 
 					crossover_function = function(items)
 					{
@@ -501,6 +503,11 @@ var EvolutionaryAlgorithmPopulation = (function()
 
 						if(size == 1)
 							return items[0];
+
+						var probability = options.probability || 1;
+
+						if(probability != 1 && Math.random() > probability)
+							return items;
 
 						// get variables from parents
 						var p1 = items[0].toArray();
@@ -537,9 +544,41 @@ var EvolutionaryAlgorithmPopulation = (function()
 						return ret;
 					}
 					break;
+				case 'mean':
+					crossover_function = function(items)
+					{
+						var size = items.length;
+
+						if(size == 0)
+							return [];
+
+						var probability = options.probability || 1;
+
+						if(probability < 1 && Math.random() > probability)
+							return items[0];
+
+						if(size == 1)
+							return items[0];
+
+						// get variables from parents
+						var p1 = items[0].toArray();
+						var p2 = items[1].toArray();
+
+						var ch = [];
+
+						var min_individual_length = Math.min(p1.length, p2.length);
+
+						for(var i=0; i<min_individual_length; i++)
+							ch[i] = (p1[i] + p2[i]) / 2;
+
+						var ch_keys = Object.keys(ch);
+
+						return new EvolutionaryAlgorithmIndividual(ch_keys, function(individual, v) { return ch[v]; }, fitnessFunction);
+					}
+					break;
 			}
 
-			// mutate all parents and create children
+			// cross all groups and create children
 			for(var i=0; i<groups_length; i++)
 			{
 				children = children.concat(crossover_function(groups[i]));
