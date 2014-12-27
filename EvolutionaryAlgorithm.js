@@ -601,6 +601,8 @@ var EvolutionaryAlgorithmPopulation = (function()
 			if(!parents || parents.length === 0)
 				return [];
 
+			options = options || {};
+
 			var algorithm = this.algorithm;
 			var interval  = algorithm.interval;
 
@@ -624,15 +626,28 @@ var EvolutionaryAlgorithmPopulation = (function()
 					// fall through
 				default:
 				case 'uniform_mutation':
+					var max_percent_change  = options.max_percent_change || 1;
+
 					if(f == undefined)
 					{
+						var range      = interval[1] - interval[0];
+						var max_change = range * max_percent_change;
+
 						if(this.algorithm.number_coding == 'INT')
-							f = function() { return Math.round((Math.random() * (interval[1] - interval[0])) + interval[0]); };
+							f = function(cur_value) {
+								var change = (Math.random() * max_change * 2) - max_change; // from -max_change to +max_change
+								
+								return Math.max(interval[0], Math.min(interval[1], Math.round(cur_value + change))); // stay in interval
+							};
 						else
-							f = function() { return (Math.random() * (interval[1] - interval[0])) + interval[0]; };
+							f = function(cur_value) {
+								var change = (Math.random() * max_change * 2) - max_change; // from -max_change to +max_change
+								
+								return Math.max(interval[0], Math.min(interval[1], cur_value + change)); // stay in interval
+							};
 					}
 
-					var probability = (options && options.probability) || 0.1;
+					var probability = options.probability || 0.1;
 
 					getVariables = function(i)
 					{
@@ -643,12 +658,14 @@ var EvolutionaryAlgorithmPopulation = (function()
 					};
 
 					generateFunction = function(individual, variable, k)
-					{						
-						return (Math.random() <= probability) ? f() : current_individual_data[variable];
+					{
+						var cur_value = current_individual_data[variable];
+
+						return (Math.random() <= probability) ? f(cur_value) : cur_value;
 					};
 					break;
 				case 'shrink_mutation':
-					var max_shrink_size  = (options && options.max_shrink_size) || 5;
+					var max_shrink_size  = options.max_shrink_size || 5;
 
 					getVariables = function(i)
 					{
@@ -671,7 +688,7 @@ var EvolutionaryAlgorithmPopulation = (function()
 					};
 					break;
 				case 'growth_mutation':
-					var max_growth_size = (options && options.max_growth_size) || 5;
+					var max_growth_size = options.max_growth_size || 5;
 
 					getVariables = function(i)
 					{
@@ -700,7 +717,7 @@ var EvolutionaryAlgorithmPopulation = (function()
 					};
 					break;
 				case 'swap_mutation':
-					var max_swap_size = (options && options.max_swap_size) || 5;
+					var max_swap_size = options.max_swap_size || 5;
 
 					getVariables = function(i)
 					{
@@ -731,8 +748,8 @@ var EvolutionaryAlgorithmPopulation = (function()
 					};
 					break;
 				case 'replace_mutation':
-					var max_replace_size = (options && options.max_replace_size) || 5;
-					var max_insert_size  = (options && options.max_insert_size) || 5;
+					var max_replace_size = options.max_replace_size || 5;
+					var max_insert_size  = options.max_insert_size || 5;
 
 					max_replace_size++;
 					max_insert_size++;
